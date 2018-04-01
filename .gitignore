@@ -1,0 +1,8 @@
+*~
+*.idea
+*.txt.user
+*.blend1
+build/
+Build/
+cmake-build-debug
+*monkeyVOXEL.dae

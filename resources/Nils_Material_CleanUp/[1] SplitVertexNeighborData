@@ -1,0 +1,50 @@
+void Project_Base::sortAndUploadData(Mesh *mesh)
+{
+    int numVerts = mesh->numVertices;
+
+    // read data from SSBO
+    readVal_SSBO_nei2D.resize(numVerts * max_expected_neighbors, 0);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, SSBO_nei2D->getHandle());
+    GLvoid* p_ = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+    memcpy(&readVal_SSBO_nei2D[0], p_, sizeof(GLint) * readVal_SSBO_nei2D.size());
+    glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+    // result will be split in 3 arrays
+    // 1: vertex indicies
+    // 2: number of neighbors per vertex
+    // 3: offset
+
+    // do 2
+    std::vector<unsigned int> numNei;
+    numNei.clear();
+    for(int i = max_expected_neighbors - 1; i < numVerts * max_expected_neighbors; i+=max_expected_neighbors )
+        numNei.push_back(readVal_SSBO_nei2D.at(i));
+    Nei_numNei.at(mesh->ID)->update(numNei);
+
+    // do 3
+    std::vector<unsigned int> offsets;
+    offsets.clear();
+    offsets.push_back(0);
+
+    for(int i = 0; i < numNei.size() - 1; i++)
+    {
+        offsets.push_back(offsets.back() + numNei.at(i));
+    }
+    Nei_offset.at(mesh->ID)->update(offsets);
+
+
+    // do 1
+    std::vector<unsigned int> indexList;
+    indexList.clear();
+    for(int i = 0; i < numNei.size(); i++)
+    {
+        for(int j = 0; j < numNei.at(i); j++)
+        {
+            indexList.push_back(readVal_SSBO_nei2D.at(i * max_expected_neighbors + j));
+        }
+    }
+    Nei_indices.at(mesh->ID)->update(indexList);
+
+    return;
+}
